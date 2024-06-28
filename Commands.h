@@ -2,6 +2,8 @@
 #define SMASH_COMMAND_H_
 
 #include <vector>
+#include <cstring>
+#include <string.h>
 
 #define COMMAND_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
@@ -113,7 +115,7 @@ public:
     public:
         int jobID;
         pid_t jobPID;
-        std::string command;
+        string command;
         bool isStopped;
 
 
@@ -237,7 +239,7 @@ private:
 public:
     static pid_t pid;
     pid_t currentProcess;
-    std::string currentCmd;
+    string currentCmd;
     static JobsList jobsList;
     int fgJobID;
     std::vector<AliasEntry> aliasList;

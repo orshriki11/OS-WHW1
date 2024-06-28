@@ -84,7 +84,7 @@ pid_t SmallShell::pid = getppid();
 
 JobsList::JobEntry *JobsList::getJobById(int jobId) {
     for(auto& job : jobsList) {
-        if(job.jobID = jobId)
+        if(job.jobID == jobId)
             return &job;
     }
     return nullptr;
@@ -103,7 +103,7 @@ JobsList::JobEntry *JobsList::getLastJob(int *lastJobId) {
 void JobsList::removeJobById(int jobId) {
     for(auto it = jobsList.begin(); it != jobsList.end(); ++it) {
         auto job = *it;
-        if(job.jobID = jobId) {
+        if(job.jobID == jobId) {
             auto jobToErase = job;
             jobsList.erase(it);
             break;
@@ -186,7 +186,6 @@ void JobsList::addJob(Command *cmd, bool isStopped) {
 ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line),
 jobs(jobs){};
 
-}
 
 void ForegroundCommand::execute() {
     char **args = (char **) malloc(COMMAND_MAX_ARGS * sizeof(char **));
