@@ -22,6 +22,8 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 #define FUNC_EXIT()
 #endif
 
+
+
 string _ltrim(const std::string &s) {
     size_t start = s.find_first_not_of(WHITESPACE);
     return (start == std::string::npos) ? "" : s.substr(start);
@@ -74,7 +76,230 @@ void _removeBackgroundSign(char *cmd_line) {
     cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+
+// TODO: Add your implementation for classes in Commands.h
+
+JobsList SmallShell::jobsList;
+pid_t SmallShell::pid = getppid();
+
+JobsList::JobEntry *JobsList::getJobById(int jobId) {
+    for(auto& job : jobsList) {
+        if(job.jobID = jobId)
+            return &job;
+    }
+    return nullptr;
+}
+
+JobsList::JobEntry *JobsList::getLastJob(int *lastJobId) {
+    int maxJobID = -1;
+    for(auto& job : jobsList) {
+        if(job.jobID > maxJobID)
+            maxJobID = job.jobID;
+    }
+    *lastJobId = maxJobID;
+    return getJobById(maxJobID);
+}
+
+void JobsList::removeJobById(int jobId) {
+    for(auto it = jobsList.begin(); it != jobsList.end(); ++it) {
+        auto job = *it;
+        if(job.jobID = jobId) {
+            auto jobToErase = job;
+            jobsList.erase(it);
+            break;
+        }
+    }
+}
+
+void JobsList::killAllJobs() {
+    for(auto& job : jobsList) {
+        cout << job.jobPID << ": " << job.command << endl;
+        kill(job.jobPID, SIGKILL);
+    }
+}
+void JobsList::printJobsList() {
+    for(auto& job : jobsList) {
+        cout << job.jobPID << ": " << job.command << endl;
+    }
+}
+
+JobsList::JobEntry *JobsList::getLastStoppedJob(int *jobId) {
+    int maxJobID = -1;
+    for(auto& job : jobsList) {
+        if(job.isStopped)
+            maxJobID = job.jobID;
+    }
+    *jobId = maxJobID;
+    return getJobById(maxJobID);
+}
+
+void JobsList::removeFinishedJobs() {
+    if(jobsList.empty()) {
+        maxJobID = 1;
+        return;
+    }
+    SmallShell &smash = SmallShell::getInstance();
+
+    for (auto it = jobsList.begin(); it != jobsList.end(); ++it) {
+        if(!smash.isPipe) {
+            auto job = *it;
+            int pidStatus;
+            int wait = waitpid(job.jobPID, &pidStatus, WNOHANG);
+            if(wait == job.jobPID || wait == -1) {
+                jobsList.erase(it);
+                --it;
+            }
+        }
+    }
+
+    int maxID = 0;
+
+    for(auto& job : jobsList) {
+        if(job.jobID > maxID)
+            maxID = job.jobID;
+    }
+
+    maxJobID = maxID + 1;
+
+}
+void JobsList::addJob(Command *cmd, bool isStopped) {
+    removeFinishedJobs();
+    std::string cmd_line(cmd->getCmd());
+    SmallShell &smash = SmallShell::getInstance();
+    if (CmdFg) {
+        for(auto it = jobsList.begin(); it != jobsList.end(); ++it){
+            auto job = *it;
+            if(job.jobID > smash.fgJobID)
+                break;
+        }
+        jobsList.insert(it, JobEntry(smash.fgJobID, pid, cmd_line, isStopped));
+        return;
+    }
+    jobsList.push_back(JobEntry(smash.fgJobID, pid, cmd_line, isStopped));
+    maxJobID++;
+}
+
+
+
+
+
+ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line),
+jobs(jobs){};
+
+}
+
+void ForegroundCommand::execute() {
+    char **args = (char **) malloc(COMMAND_MAX_ARGS * sizeof(char **));
+    int argsCount = _parseCommandLine(this->cmd_line, args);
+    int jobID;
+    JobsList::JobEntry *job;
+    SmallShell &smash = SmallShell::getInstance();
+    if(argsCount == 2)
+    {
+        try
+        {
+            jobID = stoi(args[1]);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        job = jobs->getJobById(jobID);
+        
+
+    }
+    else if(argsCount == 1)
+    {
+        job = jobs->getLastJob(&jobID);
+    }
+    else
+    {
+        cerr << "smash error: fg: invalid arguments" << endl;
+        return;
+    }
+
+    int jobPID = job->jobPID;
+    int pStatus;
+    smash.currentProcess = jobPID;
+    smash.currentCmd = job->command;
+    smash.fgJobID = jobID;
+    jobs->removeJobById(jobID);
+    if(waitpid(jobPID, &pStatus, WUNTRACED) == SYS_FAIL)
+    {
+
+        // TODO: output and etc
+        return;
+    }
+    //look for job-id in background
+
+    //print the cmd-line of that job + its PID
+    //Then wait using waitpid
+    //If ID specified - find the requested job
+    //If ID not specified - maximal ID
+    //!! After bringing job to FG remove from job list.
+
+}
+
+//Quit Command
+QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs)  : BuiltInCommand(cmd_line) {}
+
+void QuitCommand::execute() {
+    char **args = (char **) malloc(COMMAND_MAX_ARGS * sizeof(char **));
+    int argsCount = _parseCommandLine(this->cmd_line, args);
+    //the command will exit the smash
+    //If kill arg is specified then smash should send SIGKILL all of unfinished
+    //jobs before exiting
+    //If kill was specified then print number of jobs killed, their PIDS and commandlines.
+}
+
+
+KillCommand::KillCommand(const char *cmd_line, JobsList *jobs)  : BuiltInCommand(cmd_line) {}
+
+void KillCommand::execute() {
+    //
+}
+
+
+aliasCommand::aliasCommand(const char *cmd_line)  : BuiltInCommand(cmd_line) {
+}
+
+void aliasCommand::execute() {
+    char **args = (char **) malloc(COMMAND_MAX_ARGS * sizeof(char **));
+    int argsCount = _parseCommandLine(this->cmd_line, args);
+    SmallShell &smash = SmallShell::getInstance();
+    if(argsCount == 1) {
+        for(auto& alias : smash.aliasList) {
+            cout << alias.alias << "='" << alias.commandLine << "'" << endl;
+        }
+    }
+    if(argsCount == 2)
+    {
+
+    }
+}
+
+unaliasCommand::unaliasCommand(const char *cmd_line)  : BuiltInCommand(cmd_line) {
+}
+
+void unaliasCommand::execute() {
+    char **args = (char **) malloc(COMMAND_MAX_ARGS * sizeof(char **));
+    int argsCount = _parseCommandLine(this->cmd_line, args);
+    SmallShell &smash = SmallShell::getInstance();
+
+
+
+    if(argsCount == 2) {
+        for (auto it = smash.aliasList.begin(); it != smash.aliasList.end(); ++it) {
+            if(std::equal(it->alias, args[1])) {
+                auto job = *it;{
+                    smash.aliasList.erase(it);
+                    return;
+                }
+            }
+        }
+    }
+}
+
 
 SmallShell::SmallShell() {
 // TODO: add your implementation
@@ -90,42 +315,47 @@ SmallShell::~SmallShell() {
 Command *SmallShell::CreateCommand(const char *cmd_line) {
 
   string cmd_s = _trim(string(cmd_line));
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+  string firstArg = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-  if(firstWord.compare("chprompt") == 0) {
+  if(firstArg.compare("chprompt") == 0) {
       //return new ChpromptCommand(cmd_line);
   }
-  else if (firstWord.compare("showpid") == 0) {
+  else if (firstArg.compare("showpid") == 0) {
       return new ShowPidCommand(cmd_line);
   }
-  else if (firstWord.compare("pwd") == 0) {
+  else if (firstArg.compare("pwd") == 0) {
     return new GetCurrDirCommand(cmd_line);
   }
   //Need to add a proper last directory ref.
-  else if (firstWord.compare("cd") == 0) {
+  else if (firstArg.compare("cd") == 0) {
       return new ChangeDirCommand(cmd_line, &currentDir);
   }
       //Need to add a proper last directory ref.
-  else if (firstWord.compare("jobs") == 0) {
+  else if (firstArg.compare("jobs") == 0) {
       return new JobsCommand(cmd_line);
   }
-  else if (firstWord.compare("fg") == 0) {
+  else if (firstArg.compare("fg") == 0) {
       return new ForegroundCommand(cmd_line);
   }
-  else if (firstWord.compare("quit") == 0) {
+  else if (firstArg.compare("quit") == 0) {
       return new QuitCommand(cmd_line);
   }
-  else if (firstWord.compare("kill") == 0) {
+  else if (firstArg.compare("kill") == 0) {
       return new KillCommand(cmd_line);
   }
-  else if (firstWord.compare("alias") == 0) {
+  else if (firstArg.compare("alias") == 0) {
       return new aliasCommand(cmd_line);
   }
-  else if (firstWord.compare("unalias") == 0) {
+  else if (firstArg.compare("unalias") == 0) {
       return new unaliasCommand(cmd_line);
   }
   else {
-      return new ExternalCommand(cmd_line);
+      char* alias;
+      if(aliasCheck(cmd_line, &alias))
+          return CreateCommand(alias);
+      else
+        return new ExternalCommand(cmd_line);
+
   }
 
     return nullptr;
@@ -133,6 +363,9 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
 
 void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
+    Command* cmd = CreateCommand(cmd_line);
+    cmd->execute();
+
     // for example:
     // Command* cmd = CreateCommand(cmd_line);
     // cmd->execute();

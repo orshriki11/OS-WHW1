@@ -8,6 +8,8 @@
 
 class Command {
 // TODO: Add your data members
+protected:
+    const char* cmd_line;
 public:
     Command(const char *cmd_line);
 
@@ -108,9 +110,21 @@ class JobsList {
 public:
     class JobEntry {
         // TODO: Add your data members
+    public:
+        int jobID;
+        pid_t jobPID;
+        std::string command;
+        bool isStopped;
+
+
     };
     // TODO: Add your data members
+
 public:
+    std::vector<JobEntry> jobsList;
+
+    int maxJobID = -1;
+
     JobsList();
 
     ~JobsList();
@@ -155,6 +169,7 @@ public:
 
 class ForegroundCommand : public BuiltInCommand {
     // TODO: Add your data members
+    JobsList *jobs;
 public:
     ForegroundCommand(const char *cmd_line, JobsList *jobs);
 
@@ -199,6 +214,20 @@ public:
     void execute() override;
 };
 
+//class AliasList {
+//public:
+    class AliasEntry {
+        // TODO: Add your data members
+    public:
+        char *alias;
+        char *commandLine;
+    };
+    // TODO: Add your data members
+
+//public:
+
+//};
+
 
 class SmallShell {
 private:
@@ -206,6 +235,14 @@ private:
     SmallShell();
 
 public:
+    static pid_t pid;
+    pid_t currentProcess;
+    std::string currentCmd;
+    static JobsList jobsList;
+    int fgJobID;
+    std::vector<AliasEntry> aliasList;
+
+
     Command *CreateCommand(const char *cmd_line);
 
     SmallShell(SmallShell const &) = delete; // disable copy ctor
@@ -221,6 +258,7 @@ public:
 
     void executeCommand(const char *cmd_line);
     // TODO: add extra methods as needed
+    bool aliasCheck(const char *cmd_line, char **alias);
 };
 
 #endif //SMASH_COMMAND_H_
