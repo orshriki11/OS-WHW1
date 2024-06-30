@@ -2,17 +2,12 @@
 #define SMASH_COMMAND_H_
 
 #include <vector>
-#include <cstring>
-#include <string.h>
-#include <list>
 
 #define COMMAND_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 
 class Command {
 // TODO: Add your data members
-protected:
-    const char* cmd_line;
 public:
     Command(const char *cmd_line);
 
@@ -70,20 +65,11 @@ public:
     void execute() override;
 };
 
-class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-    ChangeDirCommand(const char *cmd_line, char **plastPwd);
-
-    virtual ~ChangeDirCommand() {}
-
-    void execute() override;
-};
-
-class GetCurrDirCommand : public BuiltInCommand {
+class ChpromptCommand : public BuiltInCommand {
 public:
-    GetCurrDirCommand(const char *cmd_line);
+    ChpromptCommand(const char *cmd_line);
 
-    virtual ~GetCurrDirCommand() {}
+    virtual ~ChpromptCommand() {}
 
     void execute() override;
 };
@@ -93,6 +79,35 @@ public:
     ShowPidCommand(const char *cmd_line);
 
     virtual ~ShowPidCommand() {}
+
+    void execute() override;
+};
+class GetCurrDirCommand : public BuiltInCommand {
+public:
+    GetCurrDirCommand(const char *cmd_line);
+
+    virtual ~GetCurrDirCommand() {}
+
+    void execute() override;
+};
+
+class ChangeDirCommand : public BuiltInCommand {
+public:
+    char **Penultimate; // Penultimate == next to last, immediately preceding the end of a sequence
+
+    ChangeDirCommand(const char *cmd_line, char **Penultimate);
+
+    virtual ~ChangeDirCommand() = default;
+
+    void execute() override;
+};
+
+class JobsCommand : public BuiltInCommand {
+
+public:
+    explicit JobsCommand(const char *cmd_line);
+
+    virtual ~JobsCommand() = default;
 
     void execute() override;
 };
@@ -113,21 +128,9 @@ class JobsList {
 public:
     class JobEntry {
         // TODO: Add your data members
-    public:
-        int jobID;
-        pid_t jobPID;
-        string command;
-        bool isStopped;
-
-
     };
     // TODO: Add your data members
-
 public:
-    std::vector<JobEntry> jobsList;
-
-    int maxJobID = -1;
-
     JobsList();
 
     ~JobsList();
@@ -172,7 +175,6 @@ public:
 
 class ForegroundCommand : public BuiltInCommand {
     // TODO: Add your data members
-    JobsList *jobs;
 public:
     ForegroundCommand(const char *cmd_line, JobsList *jobs);
 
@@ -217,20 +219,6 @@ public:
     void execute() override;
 };
 
-//class AliasList {
-//public:
-    class AliasEntry {
-        // TODO: Add your data members
-    public:
-        string aliasName;
-        char *commandLine;
-    };
-    // TODO: Add your data members
-
-//public:
-
-//};
-
 
 class SmallShell {
 private:
@@ -238,40 +226,14 @@ private:
     SmallShell();
 
 public:
-    static pid_t pid;
-    pid_t currentProcess;
-    string currentCmd;
-    static JobsList jobsList;
-    int fgJobID;
-    std::list<AliasEntry> aliasList;
-    std::list<string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
-                                       "listdir", "getuser", "watch"};
-
     Command *CreateCommand(const char *cmd_line);
 
     SmallShell(SmallShell const &) = delete; // disable copy ctor
     void operator=(SmallShell const &) = delete; // disable = operator
     static SmallShell &getInstance() // make SmallShell singleton
     {
-        /*reservedCommands.pushback("chprompt");
-        reservedCommands.pushback("showpid");
-        reservedCommands.pushback("pwd");
-        reservedCommands.pushback("cd");
-        reservedCommands.pushback("jobs");
-        reservedCommands.pushback("fg");
-        reservedCommands.pushback("quit");
-        reservedCommands.pushback("kill");
-        reservedCommands.pushback("alias");
-        reservedCommands.pushback("unalias");
-        reservedCommands.pushback("listdir");
-        reservedCommands.pushback("getuser");
-        reservedCommands.pushback("watch");*/
-
-
         static SmallShell instance; // Guaranteed to be destroyed.
         // Instantiated on first use.
-
-
         return instance;
     }
 
@@ -279,7 +241,6 @@ public:
 
     void executeCommand(const char *cmd_line);
     // TODO: add extra methods as needed
-    bool aliasCheck(const char *cmd_line, char **alias);
 };
 
 #endif //SMASH_COMMAND_H_
