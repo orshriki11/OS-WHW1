@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstring>
 #include <string.h>
+#include <list>
 
 #define COMMAND_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
@@ -221,7 +222,7 @@ public:
     class AliasEntry {
         // TODO: Add your data members
     public:
-        char *alias;
+        string aliasName;
         char *commandLine;
     };
     // TODO: Add your data members
@@ -242,8 +243,9 @@ public:
     string currentCmd;
     static JobsList jobsList;
     int fgJobID;
-    std::vector<AliasEntry> aliasList;
-
+    std::list<AliasEntry> aliasList;
+    std::list<string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
+                                       "listdir", "getuser", "watch"};
 
     Command *CreateCommand(const char *cmd_line);
 
@@ -251,8 +253,25 @@ public:
     void operator=(SmallShell const &) = delete; // disable = operator
     static SmallShell &getInstance() // make SmallShell singleton
     {
+        /*reservedCommands.pushback("chprompt");
+        reservedCommands.pushback("showpid");
+        reservedCommands.pushback("pwd");
+        reservedCommands.pushback("cd");
+        reservedCommands.pushback("jobs");
+        reservedCommands.pushback("fg");
+        reservedCommands.pushback("quit");
+        reservedCommands.pushback("kill");
+        reservedCommands.pushback("alias");
+        reservedCommands.pushback("unalias");
+        reservedCommands.pushback("listdir");
+        reservedCommands.pushback("getuser");
+        reservedCommands.pushback("watch");*/
+
+
         static SmallShell instance; // Guaranteed to be destroyed.
         // Instantiated on first use.
+
+
         return instance;
     }
 
