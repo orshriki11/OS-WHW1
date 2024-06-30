@@ -98,16 +98,17 @@ bool is_number(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
-string _aliasName(const char *alias){
-    unsigned last = string(alias).find('=');
-    return string(alias).substr(0, last);
+string _aliasName(const char *cmd){
+    unsigned first = string(cmd).find(' ');
+    unsigned last = string(cmd).find('=');
+    return string(cmd).substr(first, last);
 
 }
 
-string _aliasCmd(const char *alias){
-    unsigned last = string(alias).find_last_of('\'');
-    unsigned first = string(alias).find_first_of('\'');
-    return string(alias).substr(first, last);
+string _aliasCmd(const char *cmd){
+    unsigned last = string(cmd).find_last_of('\'');
+    unsigned first = string(cmd).find_first_of('\'');
+    return string(cmd).substr(first, last);
 
 }
 
@@ -154,7 +155,7 @@ void JobsList::killAllJobs() {
 }
 void JobsList::printJobsList() {
     for(auto& job : jobsList) {
-        cout << job.jobPID << ": " << job.command << endl;
+        cout << "[" << job.jobID << "] " << job.command << endl;
     }
 }
 
@@ -375,8 +376,8 @@ void aliasCommand::execute() {
             cerr << "smash error: alias: invalid alias format" << endl;
             return;
         }
-        string aliasName = _aliasName(args[1]);
-        string aliasCmd = _aliasCmd(args[1]);
+        string aliasName = _aliasName(cmd_line);
+        string aliasCmd = _aliasCmd(cmd_line);
         for(auto& alias : smash.aliasList) {
             if (alias.aliasName.compare(aliasName)) {
                 cerr << "smash error: alias: " << aliasName << " already exists or is a reserved command" << endl;
