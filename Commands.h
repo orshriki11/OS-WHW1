@@ -65,20 +65,11 @@ public:
     void execute() override;
 };
 
-class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-    ChangeDirCommand(const char *cmd_line, char **plastPwd);
-
-    virtual ~ChangeDirCommand() {}
-
-    void execute() override;
-};
-
-class GetCurrDirCommand : public BuiltInCommand {
+class ChpromptCommand : public BuiltInCommand {
 public:
-    GetCurrDirCommand(const char *cmd_line);
+    ChpromptCommand(const char *cmd_line);
 
-    virtual ~GetCurrDirCommand() {}
+    virtual ~ChpromptCommand() {}
 
     void execute() override;
 };
@@ -88,6 +79,35 @@ public:
     ShowPidCommand(const char *cmd_line);
 
     virtual ~ShowPidCommand() {}
+
+    void execute() override;
+};
+class GetCurrDirCommand : public BuiltInCommand {
+public:
+    GetCurrDirCommand(const char *cmd_line);
+
+    virtual ~GetCurrDirCommand() {}
+
+    void execute() override;
+};
+
+class ChangeDirCommand : public BuiltInCommand {
+public:
+    char **Penultimate; // Penultimate == next to last, immediately preceding the end of a sequence
+
+    ChangeDirCommand(const char *cmd_line, char **Penultimate);
+
+    virtual ~ChangeDirCommand() = default;
+
+    void execute() override;
+};
+
+class JobsCommand : public BuiltInCommand {
+
+public:
+    explicit JobsCommand(const char *cmd_line);
+
+    virtual ~JobsCommand() = default;
 
     void execute() override;
 };
