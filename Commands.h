@@ -2,12 +2,17 @@
 #define SMASH_COMMAND_H_
 
 #include <vector>
+#include <cstring>
+#include <string.h>
+#include <list>
 
 #define COMMAND_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 
 class Command {
 // TODO: Add your data members
+protected:
+    const char* cmd_line;
 public:
     Command(const char *cmd_line);
 
@@ -108,9 +113,21 @@ class JobsList {
 public:
     class JobEntry {
         // TODO: Add your data members
+    public:
+        int jobID;
+        pid_t jobPID;
+        string command;
+        bool isStopped;
+
+
     };
     // TODO: Add your data members
+
 public:
+    std::vector<JobEntry> jobsList;
+
+    int maxJobID = -1;
+
     JobsList();
 
     ~JobsList();
@@ -155,6 +172,7 @@ public:
 
 class ForegroundCommand : public BuiltInCommand {
     // TODO: Add your data members
+    JobsList *jobs;
 public:
     ForegroundCommand(const char *cmd_line, JobsList *jobs);
 
@@ -199,6 +217,20 @@ public:
     void execute() override;
 };
 
+//class AliasList {
+//public:
+    class AliasEntry {
+        // TODO: Add your data members
+    public:
+        string aliasName;
+        char *commandLine;
+    };
+    // TODO: Add your data members
+
+//public:
+
+//};
+
 
 class SmallShell {
 private:
@@ -206,14 +238,40 @@ private:
     SmallShell();
 
 public:
+    static pid_t pid;
+    pid_t currentProcess;
+    string currentCmd;
+    static JobsList jobsList;
+    int fgJobID;
+    std::list<AliasEntry> aliasList;
+    std::list<string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
+                                       "listdir", "getuser", "watch"};
+
     Command *CreateCommand(const char *cmd_line);
 
     SmallShell(SmallShell const &) = delete; // disable copy ctor
     void operator=(SmallShell const &) = delete; // disable = operator
     static SmallShell &getInstance() // make SmallShell singleton
     {
+        /*reservedCommands.pushback("chprompt");
+        reservedCommands.pushback("showpid");
+        reservedCommands.pushback("pwd");
+        reservedCommands.pushback("cd");
+        reservedCommands.pushback("jobs");
+        reservedCommands.pushback("fg");
+        reservedCommands.pushback("quit");
+        reservedCommands.pushback("kill");
+        reservedCommands.pushback("alias");
+        reservedCommands.pushback("unalias");
+        reservedCommands.pushback("listdir");
+        reservedCommands.pushback("getuser");
+        reservedCommands.pushback("watch");*/
+
+
         static SmallShell instance; // Guaranteed to be destroyed.
         // Instantiated on first use.
+
+
         return instance;
     }
 
@@ -221,6 +279,7 @@ public:
 
     void executeCommand(const char *cmd_line);
     // TODO: add extra methods as needed
+    bool aliasCheck(const char *cmd_line, char **alias);
 };
 
 #endif //SMASH_COMMAND_H_
