@@ -185,7 +185,7 @@ void GetCurrDirCommand::execute()
                 There's a special argument, `-`, that cd can accept. When `-` is the only argument provided
                 to the cd command, it instructs the shell to change the current working directory to the
                 last working directory.*/
-ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **Penultimate) : BuiltInCommand(cmd_line), Penultimate(Penultimate) {}
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **plastPwd) : BuiltInCommand(cmd_line), plastPwd(plastPwd) {}
 
 void ChangeDirCommand::execute()
 {
@@ -221,20 +221,20 @@ void ChangeDirCommand::execute()
         std::string next = args[1];
 
         if (next == "-") {
-            if (!(*Penultimate)) {
+            if (!(*plastPwd)) {
                 std::cerr << "smash error: cd: OLDPWD not set" << std::endl;
                 free(buffer);
             } else {
-                if (chdir(*Penultimate) == -1) {
+                if (chdir(*plastPwd) == -1) {
                     perror("smash error: chdir failed");
                     free(buffer);
                     freeArgs(args, num_of_args);
                     return;
                 } else {
-                    if (*Penultimate) {
-                        free(*Penultimate);
+                    if (*plastPwd) {
+                        free(*plastPwd);
                     }
-                    *Penultimate = buffer;
+                    *plastPwd = buffer;
                 }
             }
         } else {
@@ -243,10 +243,10 @@ void ChangeDirCommand::execute()
                 freeArgs(args, num_of_args);
                 return;
             } else {
-                if (*Penultimate) {
-                    free(*Penultimate);
+                if (*plastPwd) {
+                    free(*plastPwd);
                 }
-                *Penultimate = buffer;
+                *plastPwd = buffer;
             }
         }
     }
@@ -626,6 +626,94 @@ void ExternalCommand::execute() {
 
 }
 
+//////////////////////////////-------------Special-Commands-------------//////////////////////////////
+
+RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line) {}
+
+void RedirectionCommand::execute()
+{
+    int file_descriptor;
+    string modified_command;
+    int redirection_position, length;
+
+    // Check for background execution character '&' and handle it
+    string cmd_str(cmd);
+    size_t bg_pos = cmd_str.find("&");
+    if (bg_pos != string::npos) {
+        modified_command = cmd_str.substr(0, bg_pos);
+    } else {
+        modified_command = cmd_str;
+    }
+
+    // Determine the type of redirection and set the respective position and length
+    size_t append_pos = modified_command.find(">>");
+    size_t overwrite_pos = modified_command.find(">");
+    if (append_pos != string::npos) {
+        this->redirect_type = ">>";
+        redirection_position = append_pos;
+        length = 2;
+    } else {
+        this->redirect_type = ">";
+        redirection_position = overwrite_pos;
+        length = 1;
+    }
+
+    // Extract command and file name
+    this->command = modified_command.substr(0, redirection_position);
+    this->file_name = _trim(modified_command.substr(redirection_position + length));
+
+    SmallShell &shell_instance = SmallShell::getInstance();
+    pid_t child_pid = fork();
+    if (child_pid < 0) {
+        perror("smash error: fork failed");
+        return;
+    }
+
+    // In child process
+    if (child_pid == 0) {
+        shell_instance.isFork = true;
+        shell_instance.running_pid = -1;
+
+        if (setpgrp() == -1) {
+            perror("smash error: setpgrp failed");
+            exit(1);
+        }
+
+        if (close(1) == -1) {
+            perror("smash error: close failed");
+            exit(1);
+        }
+
+        // Open file for redirection
+        if (this->redirect_type == ">") {
+            file_descriptor = open(this->file_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        } else {
+            file_descriptor = open(this->file_name.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
+        }
+
+        if (file_descriptor == -1) {
+            perror("smash error: open failed");
+            exit(1);
+        }
+
+        shell_instance.fd = file_descriptor;
+        shell_instance.executeCommand(command.c_str());
+
+        if (close(file_descriptor) == -1) {
+            perror("smash error: close failed");
+            exit(1);
+        }
+
+        exit(0);
+    }
+
+    // In parent process
+    int wait_status;
+    if (waitpid(child_pid, &wait_status, WUNTRACED) == -1) {
+        perror("smash error: waitpid failed");
+        return;
+    }
+}
 
 SmallShell::SmallShell() {
 // TODO: add your implementation
@@ -674,6 +762,9 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
   }
   else if (firstArg.compare("unalias") == 0) {
       return new unaliasCommand(cmd_line);
+  }
+  else if (string(cmd_line).find(">") != string::npos || string(cmd_line).find(">>") != string::npos) {
+      return new RedirectionCommand(cmd_line);
   }
   else {
       //!!Need to check if command is alias and if so then combine args into it.
