@@ -21,6 +21,7 @@ public:
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
+    std::string getCmdLine() { return std::string(cmd_line); }
     // TODO: Add your extra methods if needed
 };
 
@@ -97,18 +98,6 @@ public:
     void execute() override;
 };
 
-class JobsList;
-
-class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-    QuitCommand(const char *cmd_line, JobsList *jobs);
-
-    virtual ~QuitCommand() {}
-
-    void execute() override;
-};
-
-
 class JobsList {
 public:
     class JobEntry {
@@ -116,23 +105,27 @@ public:
     public:
         int jobID;
         pid_t jobPID;
-        string command;
+        std::string command;
         bool isStopped;
-
-
+        JobEntry(int jobID, pid_t jobPID, std::string command, bool isStopped) {
+            this->jobID = jobID;
+            this->jobPID = jobPID;
+            this->command = command;
+            this->isStopped = isStopped;
+        }
     };
     // TODO: Add your data members
 
 public:
     std::vector<JobEntry> jobsList;
 
-    int maxJobID = -1;
+    int maxJobID = 0;
 
     JobsList();
 
     ~JobsList();
 
-    void addJob(Command *cmd, bool isStopped = false);
+    void addJob(Command *cmd, pid_t pid, bool isStopped = false);
 
     void printJobsList();
 
@@ -150,9 +143,23 @@ public:
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 
+
+class QuitCommand : public BuiltInCommand {
+// TODO: Add your data members public:
+    //JobsList jobsList;
+public:
+    QuitCommand(const char *cmd_line, JobsList *jobs);
+
+    virtual ~QuitCommand() {}
+
+    void execute() override;
+};
+
+
 class JobsCommand : public BuiltInCommand {
     // TODO: Add your data members
 public:
+    JobsList *jobs;
     JobsCommand(const char *cmd_line, JobsList *jobs);
 
     virtual ~JobsCommand() {}
@@ -222,7 +229,7 @@ public:
     class AliasEntry {
         // TODO: Add your data members
     public:
-        string aliasName;
+        std::string aliasName;
         char *commandLine;
     };
     // TODO: Add your data members
@@ -240,11 +247,14 @@ private:
 public:
     static pid_t pid;
     pid_t currentProcess;
-    string currentCmd;
+    std::string currentCmd;
     static JobsList jobsList;
     int fgJobID;
+    bool isFork;
+    bool isPipe;
+    std::string smash_prompt = "smash";
     std::list<AliasEntry> aliasList;
-    std::list<string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
+    std::list<std::string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
                                        "listdir", "getuser", "watch"};
 
     Command *CreateCommand(const char *cmd_line);
@@ -279,7 +289,7 @@ public:
 
     void executeCommand(const char *cmd_line);
     // TODO: add extra methods as needed
-    bool aliasCheck(const char *cmd_line, char **alias);
+
 };
 
 #endif //SMASH_COMMAND_H_
