@@ -9,6 +9,14 @@
 #define COMMAND_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 
+
+struct linux_dirent {
+    unsigned long  d_ino;
+    off_t          d_off;
+    unsigned short d_reclen;
+    char           d_name[];
+};
+
 class Command {
 // TODO: Add your data members
 protected:
@@ -276,7 +284,7 @@ public:
     static JobsList jobsList;
     int fgJobID;
     bool isFork;
-    bool isPipe;
+    bool pipe;
     std::string smash_prompt = "smash";
     std::list<AliasEntry> aliasList;
     std::list<std::string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
