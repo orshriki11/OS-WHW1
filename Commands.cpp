@@ -12,7 +12,12 @@
 #include <pwd.h>
 #include <grp.h>
 #include <limits.h>
+#include <dirent.h>
 #include <fstream>
+#include <fcntl.h>
+#include <sys/types.h>
+
+
 
 using namespace std;
 //TEST GIT T
@@ -352,7 +357,7 @@ void JobsList::removeFinishedJobs() {
     SmallShell &smash = SmallShell::getInstance();
 
     for (auto it = jobsList.begin(); it != jobsList.end(); ++it) {
-        if(!smash.isPipe) {
+        if(!smash.pipe) {
             auto job = *it;
             int pidStatus;
             int wait = waitpid(job.jobPID, &pidStatus, WNOHANG);
@@ -1043,7 +1048,99 @@ void GetUserCommand::execute() {
     return;
 }
 
-SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1), isFork(false), isPipe(false) {
+ListDirCommand::ListDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
+
+void ListDirCommand::execute() {
+    int argsCount;
+    string cmdString(cmd_line);
+    char *path;
+    if(_isBackgroundComamnd(cmdString.c_str()))
+    {
+        char cmdCopy[COMMAND_MAX_LENGTH];
+        strcpy(cmdCopy, cmdString.c_str());
+        _removeBackgroundSign(cmdCopy);
+        cmdString = cmdCopy;
+    }
+    char **args = _initArgs(cmdString.c_str(), &argsCount);
+    bool currDir = false;
+    char *buffer = (char *)malloc(COMMAND_MAX_LENGTH);
+    if(argsCount > 2){
+        std::cerr << "smash error: listdir: too many arguments" << std::endl;
+        freeArgs(args, argsCount);
+        return;
+    } else if(argsCount == 1){
+        currDir = true;
+        if(getcwd(buffer, COMMAND_MAX_LENGTH) == NULL){
+            perror("smash error: getcwd failed");
+            freeArgs(args, argsCount);
+            return;
+        }
+        path = buffer;
+        //free(buffer);
+        //path = get_current_dir_name();
+    } else{
+        path = args[1];
+    }
+    int fd = open(path, O_RDONLY | O_DIRECTORY);
+    if (fd == -1)
+    {
+        perror("smash error: open failed");
+        freeArgs(args, argsCount);
+        free(buffer);
+        return;
+    }
+    char buf[8192];
+    vector<string> printingOrder = {"file", "directory", "link"};
+    map<char, string> typeName = {{DT_REG, printingOrder[0]}, {DT_DIR, printingOrder[1]}, {DT_LNK, printingOrder[2]}};
+    map<string, vector<string>> filesMap;
+    while(true) {
+        int read = syscall(SYS_getdents, fd, buf, 8192);
+        if (read == -1) {
+            perror("smash error: Failed to read directory");
+            close(fd);
+            freeArgs(args, argsCount);
+            free(buffer);
+            return;
+        } else if (read == 0) {
+            break;
+        }
+        for (int bpos = 0; bpos < read;) {
+            struct linux_dirent *d = (struct linux_dirent *)(buf + bpos);
+            char d_type = *(buf + bpos + d->d_reclen - 1);
+            string name = _trim(string(d->d_name));
+            if (name.find(".") != 0) {
+                string type;
+                if (typeName.find(d_type) != typeName.end()) {
+                    type = typeName[d_type];
+                    if (filesMap.find(type) != filesMap.end()) {
+                        filesMap[type].push_back(name);
+                    } else {
+                        filesMap[type] = {name};
+                    }
+                }
+            }
+            bpos += d->d_reclen;
+        }
+    }
+
+    for(string &type : printingOrder){
+        if(filesMap.find(type) != filesMap.end()){
+            auto namesArr = filesMap[type];
+            sort(namesArr.begin(), namesArr.end());
+            for(string &name : namesArr){
+                cout << type << ": " << name << endl;
+            }
+        }
+    }
+
+    freeArgs(args, argsCount);
+    free(buffer);
+    close(fd);
+    return;
+
+}
+
+SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1), isFork(false), pipe(false) {
 // TODO: add your implementation
     pid = -1;
 }
