@@ -188,6 +188,7 @@ void ChpromptCommand::execute()
         shell.smash_prompt = args[1];
     }
     freeArgs(args, num_of_args);
+
 }
 
 /* ShowPidCommand - showpid command prints the smash PID.*/
@@ -703,7 +704,7 @@ void RedirectionCommand::execute()
     int redirection_position, length;
 
     // Check for background execution character '&' and handle it
-    string cmd_str(cmd);
+    string cmd_str(cmd_line);
     size_t bg_pos = cmd_str.find("&");
     if (bg_pos != string::npos) {
         modified_command = cmd_str.substr(0, bg_pos);
@@ -738,7 +739,7 @@ void RedirectionCommand::execute()
     // In child process
     if (child_pid == 0) {
         shell_instance.isFork = true;
-        shell_instance.running_pid = -1;
+        shell_instance.currentProcess = -1;
 
         if (setpgrp() == -1) {
             perror("smash error: setpgrp failed");
@@ -788,7 +789,7 @@ void PipeCommand::execute()
     string primaryCmd;
     string secondaryCmd;
     string pipeSymbol;
-    string commandStr = string(cmd);
+    string commandStr = string(cmd_line);
     int splitPoint;
     int pipeEnds[2];
     pipe(pipeEnds);
@@ -1013,7 +1014,7 @@ void GetUserCommand::execute() {
         std::cerr << "smash error: getuser: too many arguments" << std::endl;
         return;
     }
-    SmallShell &smash = SmallShell::getInstance();
+    //SmallShell &smash = SmallShell::getInstance();
 
     //pid_t pid = ;
     std::string statusFile = "/proc/" + string(args[1]) + "/status";
@@ -1140,7 +1141,7 @@ void ListDirCommand::execute() {
 
 }
 
-SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1), isFork(false), pipe(false) {
+SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1),isFork(false), pipe(false),prev_directory(nullptr) {
 // TODO: add your implementation
     pid = -1;
 }
@@ -1190,7 +1191,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
   }
   //Need to add a proper last directory ref.
   else if (firstArg.compare("cd") == 0 || firstArg.compare("cd&") == 0) {
-      return new ChangeDirCommand(cmd_line, &currentDir);
+      return new ChangeDirCommand(cmd_line, &prev_directory);
   }
       //Need to add a proper last directory ref.
   else if (firstArg.compare("jobs") == 0 || firstArg.compare("jobs&") == 0) {
@@ -1232,6 +1233,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
+
 
     // for example:
     // Command* cmd = CreateCommand(cmd_line);

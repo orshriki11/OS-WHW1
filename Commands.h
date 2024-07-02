@@ -18,7 +18,6 @@ struct linux_dirent {
 };
 
 class Command {
-// TODO: Add your data members
 protected:
     const char* cmd_line;
 public:
@@ -30,7 +29,6 @@ public:
     //virtual void prepare();
     //virtual void cleanup();
     std::string getCmdLine() { return std::string(cmd_line); }
-    // TODO: Add your extra methods if needed
 };
 
 class BuiltInCommand : public Command {
@@ -49,15 +47,15 @@ public:
     void execute() override;
 };
 
-class PipeCommand : public Command {
-    // TODO: Add your data members
-public:
-    PipeCommand(const char *cmd_line);
-
-    virtual ~PipeCommand() {}
-
-    void execute() override;
-};
+//class PipeCommand : public Command {
+//    // TODO: Add your data members
+//public:
+//    PipeCommand(const char *cmd_line);
+//
+//    virtual ~PipeCommand() {}
+//
+//    void execute() override;
+//};
 
 class WatchCommand : public Command {
     // TODO: Add your data members
@@ -69,18 +67,11 @@ public:
     void execute() override;
 };
 
-class RedirectionCommand : public Command {
-    // TODO: Add your data members
-public:
-    explicit RedirectionCommand(const char *cmd_line);
-
-    virtual ~RedirectionCommand() {}
-
-    void execute() override;
-};
-
 class ChangeDirCommand : public BuiltInCommand {
 // TODO: Add your data members public:
+public:
+    char **plastPwd;
+
     ChangeDirCommand(const char *cmd_line, char **plastPwd);
 
     virtual ~ChangeDirCommand() {}
@@ -151,6 +142,17 @@ public:
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 
+
+class ChpromptCommand : public BuiltInCommand {
+// TODO: Add your data members public:
+    //JobsList jobsList;
+public:
+    ChpromptCommand(const char *cmd_line);
+
+    virtual ~ChpromptCommand() {}
+
+    void execute() override;
+};
 
 class QuitCommand : public BuiltInCommand {
 // TODO: Add your data members public:
@@ -285,6 +287,8 @@ public:
     int fgJobID;
     bool isFork;
     bool pipe;
+    int fd;
+    char *prev_directory;
     std::string smash_prompt = "smash";
     std::list<AliasEntry> aliasList;
     std::list<std::string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
