@@ -238,6 +238,31 @@ public:
 
 //};
 
+class RedirectionCommand : public Command
+{
+    // TODO: Add your data members
+public:
+    std::string redirect_type;
+    std::string file_name;
+    std::string command;
+
+    explicit RedirectionCommand(const char *cmd_line);
+
+    virtual ~RedirectionCommand() {}
+
+    void execute() override;
+};
+
+class PipeCommand : public Command
+{
+
+public:
+    PipeCommand(const char *cmd_line);
+
+    virtual ~PipeCommand() {}
+
+    void execute() override;
+};
 
 class SmallShell {
 private:
