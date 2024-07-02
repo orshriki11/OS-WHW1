@@ -246,6 +246,17 @@ public:
     void execute() override;
 };
 
+class PipeCommand : public Command
+{
+
+public:
+    PipeCommand(const char *cmd_line);
+
+    virtual ~PipeCommand() {}
+
+    void execute() override;
+};
+
 class SmallShell {
 private:
     // TODO: Add your data members

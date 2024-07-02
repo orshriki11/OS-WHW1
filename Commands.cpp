@@ -715,6 +715,121 @@ void RedirectionCommand::execute()
     }
 }
 
+PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
+
+void PipeCommand::execute()
+{
+    string primaryCmd;
+    string secondaryCmd;
+    string pipeSymbol;
+    string commandStr = string(cmd);
+    int splitPoint;
+    int pipeEnds[2];
+    pipe(pipeEnds);
+    SmallShell &smashInstance = SmallShell::getInstance();
+
+    // Identify and split based on the pipe type
+    size_t pipeErrPos = commandStr.find("|&");
+    size_t pipeOutPos = commandStr.find("|");
+    if (pipeErrPos != string::npos) {
+        splitPoint = pipeErrPos;
+        pipeSymbol = "|&";
+        primaryCmd = commandStr.substr(0, splitPoint);
+        secondaryCmd = commandStr.substr(splitPoint + 2);
+    } else {
+        pipeSymbol = "|";
+        splitPoint = pipeOutPos;
+        primaryCmd = commandStr.substr(0, splitPoint);
+        secondaryCmd = commandStr.substr(splitPoint + 1);
+    }
+
+    // First child process creation
+    pid_t firstChildPID = fork();
+    if (firstChildPID < 0) {
+        perror("smash error: fork failed");
+        close(pipeEnds[0]);
+        close(pipeEnds[1]);
+        return;
+    }
+
+    if (firstChildPID == 0) {
+        if (setpgrp() == -1) {
+            perror("smash error: setpgrp failed");
+            close(pipeEnds[0]);
+            close(pipeEnds[1]);
+            exit(1);
+        }
+
+        if (pipeSymbol == "|") {
+            if (dup2(pipeEnds[1], STDOUT_FILENO) == -1) {
+                perror("smash error: dup2 failed");
+                close(pipeEnds[0]);
+                close(pipeEnds[1]);
+                exit(1);
+            }
+        } else {
+            if (dup2(pipeEnds[1], STDERR_FILENO) == -1) {
+                perror("smash error: dup2 failed");
+                close(pipeEnds[0]);
+                close(pipeEnds[1]);
+                exit(1);
+            }
+        }
+
+        close(pipeEnds[0]);
+        close(pipeEnds[1]);
+        smashInstance.pipe = true;
+        smashInstance.isFork = true;
+        smashInstance.executeCommand(primaryCmd.c_str());
+        exit(0);
+    }
+
+    // Second child process creation
+    pid_t secondChildPID = fork();
+    if (secondChildPID < 0) {
+        perror("smash error: fork failed");
+        close(pipeEnds[0]);
+        close(pipeEnds[1]);
+        return;
+    }
+
+    if (secondChildPID == 0) {
+        if (setpgrp() == -1) {
+            perror("smash error: setpgrp failed");
+            close(pipeEnds[0]);
+            close(pipeEnds[1]);
+            exit(1);
+        }
+
+        if (dup2(pipeEnds[0], STDIN_FILENO) == -1) {
+            perror("smash error: dup2 failed");
+            close(pipeEnds[0]);
+            close(pipeEnds[1]);
+            exit(1);
+        }
+
+        close(pipeEnds[0]);
+        close(pipeEnds[1]);
+        smashInstance.pipe = true;
+        smashInstance.isFork = true;
+        smashInstance.executeCommand(secondaryCmd.c_str());
+        exit(0);
+    }
+
+    close(pipeEnds[0]);
+    close(pipeEnds[1]);
+
+    if (waitpid(firstChildPID, nullptr, WUNTRACED) == -1) {
+        perror("smash error: waitpid failed");
+        return;
+    }
+
+    if (waitpid(secondChildPID, nullptr, WUNTRACED) == -1) {
+        perror("smash error: waitpid failed");
+        return;
+    }
+}
+
 SmallShell::SmallShell() {
 // TODO: add your implementation
 }
