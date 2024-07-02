@@ -18,7 +18,6 @@ struct linux_dirent {
 };
 
 class Command {
-// TODO: Add your data members
 protected:
     const char* cmd_line;
 public:
@@ -30,7 +29,6 @@ public:
     //virtual void prepare();
     //virtual void cleanup();
     std::string getCmdLine() { return std::string(cmd_line); }
-    // TODO: Add your extra methods if needed
 };
 
 class BuiltInCommand : public Command {
