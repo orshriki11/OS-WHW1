@@ -20,9 +20,10 @@
 
 
 using namespace std;
-//TEST GIT T
-//ADD 222
+
 const std::string WHITESPACE = " \n\r\t\f\v";
+
+static const array<string, 13> reservedCommands{"chprompt", "showpid", "pwd", "cd", "jobs", "fg", "quit", "kill", "alias", "unalias", "listdir", "getuser", "watch"};
 
 #if 0
 #define FUNC_ENTRY()  \
@@ -166,6 +167,11 @@ bool aliasCheck(const char *cmd, std::string *aliasCmd){
 
 // TODO: Add your implementation for classes in Commands.h
 
+
+Command::Command(const char *cmd_line) : cmd_line(cmd_line) {}
+
+BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
+
 //////////////////////////////-------------Built-in Commands-------------//////////////////////////////
 
 /* Chprompt Command - chprompt command will allow the user to change the prompt displayed by
@@ -197,7 +203,8 @@ ShowPidCommand::ShowPidCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 
 void ShowPidCommand::execute()
 {
-    cout << "smash pid is " << SmallShell::getInstance().pid << endl;
+    SmallShell &smash = SmallShell::getInstance();
+    cout << "smash pid is " << smash.pid << endl;
 }
 
 GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
@@ -282,6 +289,10 @@ void ChangeDirCommand::execute()
     }
     freeArgs(args, num_of_args);
 }
+
+//JobsList::JobEntry::JobEntry(int jobID, int jobPID, std::string command, bool isStopped) : jobID(jobID), jobPID(jobPID), command(command), isStopped(isStopped) {}
+
+JobsList::JobsList() : jobsList(), maxJobID(0) {}
 
 JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
 
@@ -568,12 +579,15 @@ void aliasCommand::execute() {
                 return;
             }
         }
-        if (std::find(smash.reservedCommands.begin(), smash.reservedCommands.end(), aliasName) !=
-                        smash.reservedCommands.end())
-        {
-            cerr << "smash error: alias: " << aliasName << " already exists or is a reserved command" << endl;
-            return;
+        for(auto& rcmd : reservedCommands) {
+            if (rcmd.compare(aliasName)) {
+                    cerr << "smash error: alias: " << rcmd << " already exists or is a reserved command" << endl;
+                    return;
+            }
         }
+//        if (std::find(smash.reservedCommands.begin(), smash.reservedCommands.end(), aliasName) !=
+//
+//        }
         const int length = aliasCmd.length();
         char* aliasCmdChars = new char[length + 1];
         strcpy(aliasCmdChars, aliasCmd.c_str());
@@ -585,7 +599,6 @@ void aliasCommand::execute() {
     } else {
 
     }
-    //wowss
     freeArgs(args, argsCount);
 }
 
@@ -1141,8 +1154,7 @@ void ListDirCommand::execute() {
 
 }
 
-SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1),isFork(false), pipe(false),prev_directory(nullptr) {
-// TODO: add your implementation
+SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1),isFork(false), pipe(false),prev_directory(nullptr),smash_prompt("smash") {
     pid = -1;
 }
 
@@ -1153,6 +1165,14 @@ SmallShell::~SmallShell() {
         }
     }
 // TODO: add your implementation
+}
+
+JobsList::~JobsList()
+{
+}
+
+Command::~Command()
+{
 }
 
 /**
