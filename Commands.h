@@ -156,8 +156,11 @@ public:
 
 class QuitCommand : public BuiltInCommand {
 // TODO: Add your data members public:
-    //JobsList jobsList;
+
+
 public:
+
+    JobsList* jobs;
     QuitCommand(const char *cmd_line, JobsList *jobs);
 
     virtual ~QuitCommand() {}
@@ -280,19 +283,18 @@ private:
     SmallShell();
 
 public:
-    static pid_t pid;
+    pid_t pid;
     pid_t currentProcess;
     std::string currentCmd;
-    static JobsList jobsList;
+    JobsList jobsList;
     int fgJobID;
     bool isFork;
     bool pipe;
     int fd;
     char *prev_directory;
-    std::string smash_prompt = "smash";
+    std::string smash_prompt;
     std::list<AliasEntry> aliasList;
-    std::list<std::string> reservedCommands{"chprompt","showpid","pwd","cd","jobs","fg","quit","kill","alias","unalias",
-                                       "listdir", "getuser", "watch"};
+    //std::list<std::string> reservedCommands;
 
     Command *CreateCommand(const char *cmd_line);
 
