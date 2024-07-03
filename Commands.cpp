@@ -319,13 +319,13 @@ JobsList::JobEntry *JobsList::getJobById(int jobId) {
 }
 
 JobsList::JobEntry *JobsList::getLastJob(int *lastJobId) {
-    int maxJobID = -1;
+    int lastID = -1;
     for(auto& job : jobsList) {
-        if(job.jobID > maxJobID)
-            maxJobID = job.jobID;
+        if(job.jobID > lastID)
+            lastID = job.jobID;
     }
-    *lastJobId = maxJobID;
-    return getJobById(maxJobID);
+    *lastJobId = lastID;
+    return getJobById(lastID);
 }
 
 void JobsList::removeJobById(int jobId) {
@@ -352,13 +352,13 @@ void JobsList::printJobsList() {
 }
 
 JobsList::JobEntry *JobsList::getLastStoppedJob(int *jobId) {
-    int maxJobID = -1;
+    int maxStopped = -1;
     for(auto& job : jobsList) {
         if(job.isStopped)
-            maxJobID = job.jobID;
+            maxStopped = job.jobID;
     }
-    *jobId = maxJobID;
-    return getJobById(maxJobID);
+    *jobId = maxStopped;
+    return getJobById(maxStopped);
 }
 
 void JobsList::removeFinishedJobs() {
@@ -393,6 +393,7 @@ void JobsList::removeFinishedJobs() {
 void JobsList::addJob(Command *cmd, pid_t pid, bool isStopped) {
     removeFinishedJobs();
     std::string cmd_line(cmd->getCmdLine());
+
     //SmallShell &smash = SmallShell::getInstance();
 //    if (!_isBackgroundComamnd(cmd->getCmdLine().c_str())) {
 //        for(auto it = jobsList.begin(); it != jobsList.end(); ++it){
@@ -459,10 +460,12 @@ void ForegroundCommand::execute() {
         smash.currentCmd = job->command;
         smash.fgJobID = jobID;
         jobs->removeJobById(jobID);
-        cout << job->command << " : " << job->jobPID << endl;
+        cout << job->command << " " << job->jobPID << endl;
         if(waitpid(jobPID, &pStatus, WUNTRACED) == -1)
         {
             perror("smash error: waitpid failed");
+            freeArgs(args, argsCount);
+            smash.currentProcess = -1;
             return;
         }
 
@@ -482,7 +485,7 @@ void ForegroundCommand::execute() {
 }
 
 //Quit Command
-QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs)  : BuiltInCommand(cmd_line) {}
+QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs)  : BuiltInCommand(cmd_line) , jobs(jobs) {}
 
 void QuitCommand::execute() {
     int argsCount;
@@ -490,7 +493,7 @@ void QuitCommand::execute() {
     SmallShell &smash = SmallShell::getInstance();
 
     if(argsCount >= 2 && string(args[1]).compare("kill") == 0) {
-        cout << "smash: sending SIGKILL signal to " << smash.jobsList.jobsList.size() << " jobs:" << endl;
+        cout << "smash: sending SIGKILL signal to " << jobs->maxJobID << " jobs:" << endl;
         smash.jobsList.killAllJobs();
     }
     freeArgs(args, argsCount);
@@ -640,10 +643,6 @@ void ExternalCommand::execute() {
     char cmdCopy[COMMAND_MAX_LENGTH];
     strcpy(cmdCopy, trimCmd.c_str());
     string cmdString(cmdCopy);
-    int argsCount;
-    char **args = _initArgs(this->cmd_line, &argsCount);
-
-
     bool isBg = _isBackgroundComamnd(cmd_line);
     bool isComplex = false;
     if(string(cmdCopy).find("*") != string::npos || string(cmdCopy).find("?") != string::npos) {
@@ -655,11 +654,9 @@ void ExternalCommand::execute() {
         _removeBackgroundSign(cmdCopy);
         cmdString = cmdCopy;
     }
+    int argsCount;
+    char **args = _initArgs(cmdString.c_str(), &argsCount);
     SmallShell &smash = SmallShell::getInstance();
-    //char executable[] = "/bin/bash";
-    //char executable_name[] = "/bin/bash";
-    //char flag[] = "-c";
-    //char *fork_args[] = {"/bin/bash", flag, cmdCopy, NULL};
     pid_t pid = fork();
 
     if (pid < 0)
@@ -668,26 +665,28 @@ void ExternalCommand::execute() {
         freeArgs(args, argsCount);
         return;
     } else if (pid == 0) {
+        smash.isFork = true;
+        smash.currentProcess = -1;
         if (setpgrp() == -1) {
             perror("smash error: setpgrp failed");
-            return;
+            exit(0);
         }
         if(isComplex) {
             if (execlp("/bin/bash", "/bin/bash", "-c", cmdCopy, NULL) == -1) {
                 perror("smash error: execlp failed");
-                return;
+                exit(0);
             }
         } else {
-            if(execve(args[0], args, NULL) == -1) {
+            if(execvp(args[0], args) == -1) {
                 perror("smash error: execve failed");
-                return;
+                exit(0);
             }
 
         }
         freeArgs(args, argsCount);
-        return;
+        delete this;
+        exit(0);
     } else {
-
         if (isBg) {
             smash.jobsList.addJob(this, pid);
         } else {
@@ -700,7 +699,7 @@ void ExternalCommand::execute() {
                 smash.currentProcess = -1;
                 return;
             }
-            smash.currentProcess = -1;
+            //smash.currentProcess = -1;
         }
     }
     freeArgs(args, argsCount);
@@ -975,15 +974,15 @@ void WatchCommand::execute() {
         }
         //return;
     } else if (!isBg){
-        smash.pid = pid;
+        smash.currentProcess = pid;
         int pstatus;
         if (waitpid(pid, &pstatus, WUNTRACED) == -1)
         {
             perror("smash error: waitpid failed");
-            smash.pid = -1;
+            smash.currentProcess = -1;
             return;
         }
-        smash.pid = -1;
+        smash.currentProcess = -1;
     }
     else {
         smash.jobsList.addJob(this, pid);
@@ -1154,8 +1153,8 @@ void ListDirCommand::execute() {
 
 }
 
-SmallShell::SmallShell() : currentProcess(-1), currentCmd(""), fgJobID(-1),isFork(false), pipe(false),prev_directory(nullptr),smash_prompt("smash") {
-    pid = -1;
+SmallShell::SmallShell() : pid(getpid()), currentProcess(-1), currentCmd(""), fgJobID(-1),isFork(false), pipe(false),prev_directory(nullptr),smash_prompt("smash") {
+    //pid = -1;
 }
 
 SmallShell::~SmallShell() {
@@ -1251,6 +1250,12 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
 
 void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
+    if (string(cmd_line).find_first_not_of(WHITESPACE) == string::npos) {
+        return;
+    }
+    if(!isFork)
+        this->jobsList.removeFinishedJobs();
+    //isAlias = false;
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
 
