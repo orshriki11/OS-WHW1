@@ -363,7 +363,7 @@ JobsList::JobEntry *JobsList::getLastStoppedJob(int *jobId) {
 
 void JobsList::removeFinishedJobs() {
     if(jobsList.empty()) {
-        maxJobID = 1;
+        maxJobID = 0;
         return;
     }
     SmallShell &smash = SmallShell::getInstance();
@@ -375,6 +375,7 @@ void JobsList::removeFinishedJobs() {
             int wait = waitpid(job.jobPID, &pidStatus, WNOHANG);
             if(wait == job.jobPID || wait == -1) {
                 jobsList.erase(it);
+                maxJobID--;
                 --it;
             }
         }
@@ -387,7 +388,7 @@ void JobsList::removeFinishedJobs() {
             maxID = job.jobID;
     }
 
-    maxJobID = maxID + 1;
+    maxJobID = maxID;
 
 }
 void JobsList::addJob(Command *cmd, pid_t pid, bool isStopped) {
@@ -406,7 +407,7 @@ void JobsList::addJob(Command *cmd, pid_t pid, bool isStopped) {
 //
 //        return;
 //    }
-    jobsList.push_back(JobEntry(maxJobID++, pid, cmd_line, isStopped));
+    jobsList.push_back(JobEntry(++maxJobID, pid, cmd_line, isStopped));
     //maxJobID++;
 }
 
