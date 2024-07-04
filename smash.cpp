@@ -15,10 +15,14 @@ int main(int argc, char *argv[]) {
     SmallShell &smash = SmallShell::getInstance();
     while (true) {
         //smash.smash_prompt
+        smash.pipe = false;
         std::cout << smash.smash_prompt <<"> ";
         std::string cmd_line;
         std::getline(std::cin, cmd_line);
         smash.executeCommand(cmd_line.c_str());
+        if(smash.pipe) {
+            break;
+        }
     }
     return 0;
 }

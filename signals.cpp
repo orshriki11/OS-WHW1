@@ -13,6 +13,15 @@ void ctrlCHandler(int sig_num) {
         smash.currentProcess = -1;
         smash.currentCmd = "";
         kill(PID, SIGINT);
+        smash.sigStop = true;
+        cout << "smash: process " << PID << " was killed" << endl;
+    } else if(smash.watchProcess != -1){
+        int PID = smash.watchProcess;
+        smash.watchProcess = -1;
+        smash.currentCmd = "";
+        cout << "watchpro " << PID << endl;
+        kill(PID, SIGINT);
+        smash.sigStop = true;
         cout << "smash: process " << PID << " was killed" << endl;
     }
 }

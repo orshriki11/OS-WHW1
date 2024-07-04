@@ -25,6 +25,7 @@ public:
 
     virtual ~Command();
 
+    std::string originalCmd;
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
@@ -106,12 +107,12 @@ public:
         pid_t jobPID;
         std::string command;
         bool isStopped;
-        JobEntry(int jobID, pid_t jobPID, std::string command, bool isStopped) {
-            this->jobID = jobID;
-            this->jobPID = jobPID;
-            this->command = command;
-            this->isStopped = isStopped;
-        }
+        JobEntry(int jobID, pid_t jobPID, std::string command, bool isStopped);
+//            this->jobID = jobID;
+//            this->jobPID = jobPID;
+//            this->command = command;
+//            this->isStopped = isStopped;
+//        }
     };
     // TODO: Add your data members
 
@@ -119,6 +120,8 @@ public:
     std::vector<JobEntry> jobsList;
 
     int maxJobID = 0;
+
+    int jobsCount;
 
     JobsList();
 
@@ -182,6 +185,7 @@ public:
 
 class KillCommand : public BuiltInCommand {
     // TODO: Add your data members
+    JobsList *jobs;
 public:
     KillCommand(const char *cmd_line, JobsList *jobs);
 
@@ -285,6 +289,7 @@ private:
 public:
     pid_t pid;
     pid_t currentProcess;
+    pid_t watchProcess;
     std::string currentCmd;
     JobsList jobsList;
     int fgJobID;
@@ -294,6 +299,7 @@ public:
     char *prev_directory;
     std::string smash_prompt;
     std::list<AliasEntry> aliasList;
+    bool sigStop;
     //std::list<std::string> reservedCommands;
 
     Command *CreateCommand(const char *cmd_line);
@@ -302,19 +308,6 @@ public:
     void operator=(SmallShell const &) = delete; // disable = operator
     static SmallShell &getInstance() // make SmallShell singleton
     {
-        /*reservedCommands.pushback("chprompt");
-        reservedCommands.pushback("showpid");
-        reservedCommands.pushback("pwd");
-        reservedCommands.pushback("cd");
-        reservedCommands.pushback("jobs");
-        reservedCommands.pushback("fg");
-        reservedCommands.pushback("quit");
-        reservedCommands.pushback("kill");
-        reservedCommands.pushback("alias");
-        reservedCommands.pushback("unalias");
-        reservedCommands.pushback("listdir");
-        reservedCommands.pushback("getuser");
-        reservedCommands.pushback("watch");*/
 
 
         static SmallShell instance; // Guaranteed to be destroyed.
