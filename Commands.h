@@ -49,7 +49,7 @@ public:
 };
 
 //class PipeCommand : public Command {
-//    // TODO: Add your data members
+//
 //public:
 //    PipeCommand(const char *cmd_line);
 //
@@ -59,7 +59,7 @@ public:
 //};
 
 class WatchCommand : public Command {
-    // TODO: Add your data members
+
 public:
     WatchCommand(const char *cmd_line);
 
@@ -69,7 +69,6 @@ public:
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
 public:
     char **plastPwd;
 
@@ -101,7 +100,7 @@ public:
 class JobsList {
 public:
     class JobEntry {
-        // TODO: Add your data members
+
     public:
         int jobID;
         pid_t jobPID;
@@ -114,7 +113,7 @@ public:
 //            this->isStopped = isStopped;
 //        }
     };
-    // TODO: Add your data members
+
 
 public:
     std::vector<JobEntry> jobsList;
@@ -142,13 +141,11 @@ public:
     JobEntry *getLastJob(int *lastJobId);
 
     JobEntry *getLastStoppedJob(int *jobId);
-    // TODO: Add extra methods or modify exisitng ones as needed
+
 };
 
 
 class ChpromptCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-    //JobsList jobsList;
 public:
     ChpromptCommand(const char *cmd_line);
 
@@ -158,8 +155,6 @@ public:
 };
 
 class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-
 
 public:
 
@@ -173,7 +168,6 @@ public:
 
 
 class JobsCommand : public BuiltInCommand {
-    // TODO: Add your data members
 public:
     JobsList *jobs;
     JobsCommand(const char *cmd_line, JobsList *jobs);
@@ -184,7 +178,6 @@ public:
 };
 
 class KillCommand : public BuiltInCommand {
-    // TODO: Add your data members
     JobsList *jobs;
 public:
     KillCommand(const char *cmd_line, JobsList *jobs);
@@ -195,7 +188,6 @@ public:
 };
 
 class ForegroundCommand : public BuiltInCommand {
-    // TODO: Add your data members
     JobsList *jobs;
 public:
     ForegroundCommand(const char *cmd_line, JobsList *jobs);
@@ -241,15 +233,13 @@ public:
     void execute() override;
 };
 
-//class AliasList {
-//public:
-    class AliasEntry {
-        // TODO: Add your data members
-    public:
-        std::string aliasName;
-        char *commandLine;
-    };
-    // TODO: Add your data members
+class AliasEntry {
+
+public:
+    std::string aliasName;
+    char *commandLine;
+};
+
 
 //public:
 
@@ -257,7 +247,6 @@ public:
 
 class RedirectionCommand : public Command
 {
-    // TODO: Add your data members
 public:
     std::string redirect_type;
     std::string file_name;
@@ -283,7 +272,6 @@ public:
 
 class SmallShell {
 private:
-    // TODO: Add your data members
     SmallShell();
 
 public:
@@ -320,7 +308,6 @@ public:
     ~SmallShell();
 
     void executeCommand(const char *cmd_line);
-    // TODO: add extra methods as needed
 
 };
 

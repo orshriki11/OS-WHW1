@@ -165,7 +165,6 @@ bool aliasCheck(const char *cmd, std::string *aliasCmd){
     return false;
 }
 
-// TODO: Add your implementation for classes in Commands.h
 
 
 Command::Command(const char *cmd_line) : cmd_line(cmd_line) {}
@@ -301,7 +300,7 @@ void JobsCommand::execute()
 
     SmallShell &smash = SmallShell::getInstance();
     if (!smash.isFork)
-        smash.jobsList.removeFinishedJobs();
+        jobs->removeFinishedJobs();
 
 
 
@@ -500,11 +499,10 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs)  : BuiltInCommand
 void QuitCommand::execute() {
     int argsCount;
     char **args = _initArgs(this->cmd_line, &argsCount);
-    SmallShell &smash = SmallShell::getInstance();
 
     if(argsCount >= 2 && string(args[1]).compare("kill") == 0) {
         cout << "smash: sending SIGKILL signal to " << jobs->jobsCount << " jobs:" << endl;
-        smash.jobsList.killAllJobs();
+        jobs->killAllJobs();
     }
     freeArgs(args, argsCount);
     exit(0);
@@ -1210,7 +1208,6 @@ SmallShell::~SmallShell() {
             perror("smash error: kill failed");
         }
     }
-// TODO: add your implementation
 }
 
 JobsList::~JobsList()
